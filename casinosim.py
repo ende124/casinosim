@@ -15,7 +15,8 @@ BETTING_SYSTEMS = {
     "fp": betting.FPBetting,
     "fibonacci": betting.Fibonacci,
     "labouchere": betting.Labouchere,
-    "simple": betting.SimpleBetting
+    "simple": betting.SimpleBetting,
+    "oscarsgrind": betting.OscarsGrind
 }
 
 
