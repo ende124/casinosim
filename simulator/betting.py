@@ -396,6 +396,59 @@ class FPBetting(BettingSystem):
     def get_next_bet(self):
         return self.next_bet
 
+class OscarsGrind(BettingSystem):
+    def __init__(self, starting, required_wins = 1, consecutive = 1):
+        BettingSystem.__init__(self)
+
+        self.starting_bet = starting
+        self.next_bet = starting
+        self.profit = 0
+        
+        self.required_wins = required_wins
+        self.win_count = 0
+        self.consecutive = consecutive
+
+    @classmethod
+    def from_options(cls, options):
+        opts = BettingSystem.parse_options(options)
+        if 'starting-bet' not in opts:
+            raise RuntimeError(
+                cls.__name__ + " requires 'starting-bet' option")
+        if 'required-wins' in opts:
+            if 'consecutive' in opts:
+                return cls(int(opts["starting-bet"]), int(opts["required-wins"]), int(opts["consecutive"]))
+            else:
+                return cls(int(opts["starting-bet"]), int(opts["required-wins"]))
+        else:
+            return cls(int(opts["starting-bet"]))
+
+    def reset(self):
+        self.next_bet = self.starting_bet
+        self.profit = 0
+
+    def on_win(self, hands):
+        self.profit = self.profit + self.next_bet
+        if self.profit < self.starting_bet:
+            if self.profit + self.next_bet + self.starting_bet > self.starting_bet:
+                self.next_bet = self.starting_bet - self.profit
+            elif self.win_count + 1 == self.required_wins:
+                self.next_bet += self.starting_bet
+                self.win_count = 0
+            else:
+                self.win_count += 1
+        elif self.profit >= self.starting_bet:
+            self.reset
+
+    def on_loss(self, hands):
+        self.profit = self.profit - self.next_bet
+        if self.consecutive:
+            self.win_count = 0
+
+    def on_tie(self):
+        pass
+
+    def get_next_bet(self):
+        return self.next_bet
 
 def test_thing():
     fib = FibonacciSequence()
