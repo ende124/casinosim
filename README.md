@@ -78,3 +78,10 @@ python casinosim.py --iterations=1000 --gold=12000 --target=14000 --bet-system=i
 ```shell
 python casinosim.py --iterations=2000 --gold=240000 --target=280000 --bet-system=labouchere --bet-options=starting-bet=1000,seq=1-2-3-5-8-3-2
 ```
+
+### Oscar's Grind
+`required-wins` and `consecutive` are optional
+
+```shell
+python casinosim.py --iterations=2000 --gold=240000 --target=280000 --bet-system=oscarsgrind --bet-options=starting-bet=1000,required-wins=5,consecutive=0
+```
