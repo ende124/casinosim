@@ -35,6 +35,18 @@ Betting systems:
   fibonacci, fp, idkmartingale, labouchere, martingale, none, simple
 ```
 
+### Multple players
+To use multple players, all you need to do is supply more arguments.
+
+#### Example:
+```sh
+python casinosim.py --iterations=100 \
+    --bet-system=martingale --gold=20000 --target=30000 --bet-options=starting-bet=120 \
+    --bet-system=fibonacci --gold=10000 --target=15000 --bet-options=starting-bet=100
+```
+This will create two players, each with their own strategy, gold, gold-target and betting options.  
+If only one target is supplied, all players will use that target. That does not apply to bet system, gold and bet options.
+
 ## Examples
 
 ### Simple betting (bet same amount every round)
