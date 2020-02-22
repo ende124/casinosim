@@ -218,6 +218,7 @@ def main():
     just_print("  with options:", bet_options)
     if bet_anti_fallacy:
         just_print("Using anti-fallacy strategy")
+    just_print("Players: " + str(players))
 
     # if len(starting_golds) > 0:
     #     just_print()
