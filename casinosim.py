@@ -293,7 +293,7 @@ def main():
     (reasons, st) = out_q.get()
     add_reasons(reasons)
     for i in range(players):
-        total_stats[i].add(st[0])
+        total_stats[i].add(st[i])
 
     for p in procs:
         p.join()
@@ -305,7 +305,7 @@ def main():
 
     # Display end reasons and stats
     just_print("Results:")
-    for i, total_reasons in enumerate(total_reasons):
+    for i, total_reason in enumerate(total_reasons):
         just_print('\n\nPlayer: ' + str(i + 1))
         just_print('Strat: ' + bet_system_names[i])
         just_print('Starting gold: ' + str(starting_golds[i]))
@@ -315,8 +315,8 @@ def main():
         elif len(target_gold) > 0:
             just_print('Target gold: ' + str(target_gold[0]))
         just_print()
-        for rs in sorted(total_reasons.keys()):
-            s = total_reasons[rs]
+        for rs in sorted(total_reason.keys()):
+            s = total_reason[rs]
             just_print("  {:.<22}{:.>12,} ({:>6.2%})".format(
                 rs, s["count"], s["count"] / iterations))
             # just_print(s["gold_end"])
@@ -328,6 +328,8 @@ def main():
         total_stats[i].print(just_print)
         if out_file is not None:
             out_file.close()
+
+    just_print(total_stats)
 
 
 
