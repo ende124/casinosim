@@ -28,40 +28,6 @@ class Phenny:
         pass
 
 
-class BlackjackHooksList:
-    def __init__(self, hooks):
-        self.hooks = hooks
-        self.output = None
-
-    def print(self, *args):
-        if self.output is not None:
-            self.output(*args)
-
-    def getHook(self, hook):
-        return self.hooks[hook]
-
-    def getList(self):
-        return self.hooks
-
-    def setPropOnAll(self, prop, value):
-        self.hooks[prop] = value
-
-    def set_positive_prog(self, enable):
-        self.setPropOnAll("positive_prog", enable)
-
-    def set_anti_fallacy(self, enable):
-        self.setPropOnAll("anti_fallacy", enable)
-
-    def reset_results(self):
-        self.setPropOnAll('wins', 0)
-        self.setPropOnAll('losses', 0)
-        self.setPropOnAll('ties', 0)
-        self.setPropOnAll('surrenders', 0)
-
-    def on_init(self, bj):
-        self.print("on_init")
-
-
 class BlackjackHooks:
     """
     Contains callbacks from CasinoBot, to interface with our strategy and
@@ -299,8 +265,6 @@ class Player(player.Player):
         self.stats.gold_start = self.starting_gold
         self.stats.gold_max = self.starting_gold
         self.stats.gold_min = self.starting_gold
-        # print(players)
-        # players.pop(players[players.index(player)])
         if self.uid in player.players:
             player.remove_player(self.uid)
         player.add_player(self.uid, self.name)
@@ -335,8 +299,6 @@ class BlackjackSimulator:
         self.reset()
 
     def reset(self):
-        # for p in player.in_game:
-        #     player.remove_from_game(p)
         self.hooks = BlackjackHooks(self.players, self.output)
         self.hooks.set_anti_fallacy(self.anti_fallacy)
         self.hooks.set_positive_prog(self.positive_prog)
@@ -374,8 +336,6 @@ class BlackjackSimulator:
             self.output(*args)
 
     def run(self, rounds):
-        end_reason = "N/A"
-
         curr_round = 0
         runs = 0
         while True:
@@ -404,8 +364,8 @@ class BlackjackSimulator:
                         pl.ended = True
             if all(pl.ended for pl in self.players):
                 break
-        # Update stats
 
+        # Update stats
         for pl in self.players:
             pl.stats.gold_end = pl.player.gold
 
