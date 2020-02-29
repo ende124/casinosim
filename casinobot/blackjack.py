@@ -58,6 +58,8 @@ class Game:
 
         self.hooks = hooks
 
+        p.remove_all_from_game()
+
         p.add_player(0, 'Dealer')
         p.players[0].hand.hand_value = MethodType(
             hand_value, p.players[0].hand)
@@ -72,7 +74,7 @@ class Game:
 
         self.hooks.on_init(self)
 
-        self.begin_game()
+        # self.begin_game()
 
     def join(self, uid):
         if len(p.in_game) < 6 and uid not in p.in_game:
@@ -135,6 +137,9 @@ class Game:
 
         # Deal the cards to the players
         self.phenny.say("The Dealer begins dealing...")
+
+        for uid in p.players:
+            p.players[uid].hand.empty_hand()
 
         p.deal(self.deck, 2)
 

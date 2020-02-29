@@ -29,6 +29,7 @@ class BlackjackStrategy:
             thing = val
 
         if thing not in self.strat_table[dealer]:
+            print(hand)
             print("No entry in strat table, standing!")
             print("Hand value:", val)
             print("Cards:", self.get_card_combo(hand))

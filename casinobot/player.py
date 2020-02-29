@@ -211,5 +211,12 @@ def deal(deck, amount):
         amount -= 1
 
 
+def remove_all_from_game():
+    for uid in players:
+        if uid in in_game:
+            in_game.remove(uid)
+        players[uid].in_game = False
+
+
 if __name__ == '__main__':
     print(__doc__)

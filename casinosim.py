@@ -7,7 +7,6 @@ import time
 
 from simulator import betting, simulator, stats, strategy
 
-
 BETTING_SYSTEMS = {
     "none": betting.NoBetting,
     "martingale": betting.Martingale,
@@ -54,6 +53,8 @@ HELP_CONDITIONS = [
     (['-t', '--target=GOLD'], ['target gold amount to reach']),
 ]
 
+players = []
+
 
 def print_help_thing(thing):
     """
@@ -86,24 +87,25 @@ def usage(file):
     print("  {}".format(", ".join(sorted(BETTING_SYSTEMS.keys()))))
 
 
-def worker(num, iterations, outq, bjs, rounds, gold):
+def worker(num, iterations, outq, bj, rounds, gold, players):
     total_stats = []
     reasons = []
-    for i, _ in enumerate(bjs):
-        reasons.append({})
+    for i, _ in enumerate(players):
         total_stats.append(stats.BlackjackStats())
         total_stats[i].gold_min = gold[i]
+        reasons.append({})
     for _ in range(iterations):
-        for i, bj in enumerate(bjs):
-            bj.reset()
-            (reason, st) = bj.run(rounds)
+        bj.reset()
+        pls = bj.run(rounds)
 
-            total_stats[i].add(st)
-            if reason not in reasons:
+        for i, pl in enumerate(pls):
+            total_stats[i].add(pl.stats)
+            reason = pl.end_reason
+            if reason not in reasons[i]:
                 reasons[i][reason] = {"count": 0, "gold_end": [], "hands": []}
             reasons[i][reason]["count"] += 1
-            reasons[i][reason]["gold_end"].append(st.gold_end)
-            reasons[i][reason]["hands"].append(st.total_hands)
+            reasons[i][reason]["gold_end"].append(pl.stats.gold_end)
+            reasons[i][reason]["hands"].append(pl.stats.total_hands)
     outq.put((reasons, total_stats))
 
 
@@ -188,7 +190,7 @@ def main():
         just_print('You must have an equal amount of --bet-system and --gold')
         sys.exit(1)
 
-    players = len(bet_system_names)
+    playernum = len(bet_system_names)
 
     if any(x not in BETTING_SYSTEMS for x in bet_system_names) or len(bet_system_names) == 0:
         just_print("Invalid betting system '{}'".format(bet_system_names))
@@ -218,7 +220,7 @@ def main():
     just_print("  with options:", bet_options)
     if bet_anti_fallacy:
         just_print("Using anti-fallacy strategy")
-    just_print("Players: " + str(players))
+    just_print("Players: " + str(playernum))
 
     # if len(starting_golds) > 0:
     #     just_print()
@@ -233,31 +235,19 @@ def main():
     just_print("Running {0} iterations of blackjack using {1} processes...".format(
         iterations, threads))
 
-    # Track stats over all iterations my merging each iteration's
-    # own stats instance with this one
-    total_stats = []
-    for i in range(players):
-        total_stats.append(stats.BlackjackStats())
-        total_stats[i].gold_start = starting_golds[i]
-        total_stats[i].gold_min = starting_golds[i]
-        if len(target_gold) >= players:
-            total_stats[i].gold_target = target_gold[i]
-        else:
-            total_stats[i].gold_target = target_gold[0]
-
     total_reasons = []
 
     def add_reasons(many_reasons):
-        for i, reasons in enumerate(many_reasons):
+        for i, reas in enumerate(many_reasons):
             total_reasons.append({})
-            for reason in reasons.keys():
-                if reason not in total_reasons:
-                    total_reasons[i][reason] = reasons[reason]
+            for reason in reas.keys():
+                if reason not in total_reasons[i]:
+                    total_reasons[i][reason] = reas[reason]
                 else:
-                    total_reasons[i][reason]["count"] += reasons[reason]["count"]
+                    total_reasons[i][reason]["count"] += reas[reason]["count"]
                     total_reasons[i][reason]["gold_end"].extend(
-                        reasons[reason]["gold_end"])
-                    total_reasons[i][reason]["hands"].extend(reasons[reason]["hands"])
+                        reas[reason]["gold_end"])
+                    total_reasons[i][reason]["hands"].extend(reas[reason]["hands"])
 
     out_q = multiprocessing.Queue()
     procs = []
@@ -267,33 +257,38 @@ def main():
 
     strat = strategy.BlackjackStrategy.from_file(strat_file)
 
-    bjs = []
-
-    for i, bet_system in enumerate(bet_systems):
-        bj = simulator.BlackjackSimulator(strat, bet_system)
-        bj.set_starting_gold(starting_golds[i])
-        bj.set_anti_fallacy(bet_anti_fallacy)
-        bj.set_positive_prog(bet_positive_prog)
-        if len(target_gold) >= players:
-            bj.set_target_gold(target_gold[i])
+    # Track stats over all iterations my merging each iteration's
+    # own stats instance with this one
+    total_stats = []
+    for i in range(playernum):
+        players.append(simulator.Player(strat, bet_systems[i], bet_options[i], starting_golds[i], target_gold[i], str(i + 1)))
+        total_stats.append(stats.BlackjackStats())
+        total_stats[i].gold_start = starting_golds[i]
+        total_stats[i].gold_min = starting_golds[i]
+        if len(target_gold) >= playernum:
+            total_stats[i].gold_target = target_gold[i]
         else:
-            bj.set_target_gold(target_gold[0])
+            total_stats[i].gold_target = target_gold[0]
 
-        bjs.append(bj)
+    bj = simulator.BlackjackSimulator(players)
+    bj.set_anti_fallacy(bet_anti_fallacy)
+    bj.set_positive_prog(bet_positive_prog)
+    bj.set_target_gold(target_gold[0])
 
     start = time.perf_counter()
+    # threads = 1
     for i in range(threads):
         p = multiprocessing.Process(
             target=worker,
-            args=(i, chunksize, out_q, bjs, rounds, starting_golds))
+            args=(i, chunksize, out_q, bj, rounds, starting_golds, players))
         procs.append(p)
         p.start()
 
-    # for _ in range(threads):
-    (reasons, st) = out_q.get()
-    add_reasons(reasons)
-    for i in range(players):
-        total_stats[i].add(st[i])
+    for _ in range(threads):
+        (reasons, st) = out_q.get()
+        add_reasons(reasons)
+        for i in range(playernum):
+            total_stats[i].add(st[i])
 
     for p in procs:
         p.join()
@@ -305,18 +300,18 @@ def main():
 
     # Display end reasons and stats
     just_print("Results:")
-    for i, total_reason in enumerate(total_reasons):
+    for i in range(playernum):
         just_print('\n\nPlayer: ' + str(i + 1))
         just_print('Strat: ' + bet_system_names[i])
         just_print('Starting gold: ' + str(starting_golds[i]))
         just_print('Bet options: ' + str(bet_options[i]))
-        if len(target_gold) >= players:
+        if len(target_gold) >= playernum:
             just_print('Target gold: ' + str(target_gold[i]))
         elif len(target_gold) > 0:
             just_print('Target gold: ' + str(target_gold[0]))
         just_print()
-        for rs in sorted(total_reason.keys()):
-            s = total_reason[rs]
+        for rs in sorted(total_reasons[i].keys()):
+            s = total_reasons[i][rs]
             just_print("  {:.<22}{:.>12,} ({:>6.2%})".format(
                 rs, s["count"], s["count"] / iterations))
             # just_print(s["gold_end"])
@@ -328,8 +323,6 @@ def main():
         total_stats[i].print(just_print)
         if out_file is not None:
             out_file.close()
-
-    just_print(total_stats)
 
 
 
