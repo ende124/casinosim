@@ -74,6 +74,8 @@ class BlackjackHooks:
         self.print("on_begin_game")
 
         for pl in self.players:
+            if pl.ended:
+                continue
             bet = pl.bet_system.get_next_bet()
 
             if bet == 0:
@@ -88,7 +90,7 @@ class BlackjackHooks:
             if pl.bet_system.end_reason is not None:
                 pl.end_reason = pl.bet_system.end_reason
                 pl.ended = True
-                return
+                continue
 
             if pl.player.gold < bet:
                 pl.end_reason = "Ran out of gold."
@@ -337,14 +339,12 @@ class BlackjackSimulator:
 
     def run(self, rounds):
         curr_round = 0
-        runs = 0
         while True:
-            runs +=1
             for p in player.in_game:
                 player.remove_from_game(p)
             bj = blackjack.Game(self.phenny, 1, self.name, self.hooks)
             for pl in self.players:
-                if pl.uid != 1:
+                if pl.uid != 1 and not pl.ended:
                     bj.join(pl.uid)
             bj.begin_game()
             del bj
