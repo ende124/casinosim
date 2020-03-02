@@ -82,19 +82,6 @@ class Game:
             # Add the hand_value function
             p.players[uid].hand.hand_value = MethodType(
                 hand_value, p.players[uid].hand)
-
-            # Joining during betting
-            if not self.accept_bets:
-                # If we are at the max number of players, start the game
-                if len(p.in_game) == 6:
-                    self.t.cancel()
-                    self.begin_game()
-
-                # If half the countdown has already passed, restart the timer
-                elif time.time() - self.timer_start > DELAY_TIME / 2 and self.t:
-                    self.t.cancel()
-                    self.t = Timer(DELAY_TIME, self.begin_game)
-                    self.t.start()
             return msg
         elif uid in p.in_game:
             return "You have already joined the game!"

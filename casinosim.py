@@ -192,6 +192,10 @@ def main():
 
     playernum = len(bet_system_names)
 
+    if playernum > 6:
+        just_print('6 players is the maximum, you provided', playernum, 'players.')
+        sys.exit(1)
+
     if any(x not in BETTING_SYSTEMS for x in bet_system_names) or len(bet_system_names) == 0:
         just_print("Invalid betting system '{}'".format(bet_system_names))
         just_print("Available systems:", ", ".join(
